@@ -22,3 +22,25 @@ operation_mode	Stove Mode	None	Indicates the current mode of the stove (e.g., "O
 Binary Sensors
 
 door_open	Door Open	Indicates if the stove door is currently open.
+
+
+
+
+Example Dashboard Configuration :
+
+type: vertical-stack
+cards:
+  - type: entities
+    entities:
+      - entity: sensor.stove_temperature
+      - entity: sensor.room_temperature
+      - entity: sensor.oxygen_level
+      - entity: sensor.valve1_position
+      - entity: sensor.valve2_position
+      - entity: sensor.valve3_position
+      - entity: sensor.maintenance_alarms
+      - entity: sensor.safety_alarms
+      - entity: sensor.refill_alarm
+      - entity: sensor.operation_mode
+      - entity: binary_sensor.door_open
+    title: HWAM Stove Status
