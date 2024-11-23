@@ -1,0 +1,9 @@
+{
+  "domain": "hwam",
+  "name": "HWAM Integration",
+  "version": "1.0.0",
+  "documentation": "https://github.com/Digital-Munebox/home-assistant-hwam",
+  "requirements": [],
+  "codeowners": ["@Digital-Munebox"],
+  "iot_class": "local_polling"
+}
