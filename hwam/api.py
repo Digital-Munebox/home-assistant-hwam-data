@@ -18,7 +18,7 @@ REQUIRED_KEYS = {
 VALID_CONTENT_TYPES = {
     'application/json',
     'text/json',
-    'text/plain'  # Certains serveurs peuvent aussi utiliser text/plain
+    'text/plain'
 }
 
 class HWAMApi:
@@ -35,56 +35,37 @@ class HWAMApi:
         """Get data from the HWAM stove."""
         url = f"{self._base_url}/get_stove_data"
         _LOGGER.debug("Fetching data from: %s", url)
-        
+
         try:
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(15):  # Augmenté à 15 secondes
                 async with self._session.get(url) as response:
                     _LOGGER.debug("Response status: %s", response.status)
                     content_type = response.headers.get('Content-Type', '').lower().split(';')[0]
                     _LOGGER.debug("Response content type: %s", content_type)
-                    
+
                     if response.status == 200:
                         try:
-                            # Lire le contenu brut d'abord
                             text_response = await response.text()
-                            _LOGGER.debug("Raw response text: %s", text_response)
-                            
-                            # Parser manuellement le JSON
-                            try:
-                                data = json.loads(text_response)
-                            except json.JSONDecodeError as err:
-                                _LOGGER.error("Failed to parse JSON: %s", err)
-                                return {}
-                            
-                            # Validation basique des données
-                            if isinstance(data, dict):
-                                if all(key in data for key in REQUIRED_KEYS):
-                                    _LOGGER.debug("Successfully parsed and validated data")
-                                    return data
-                                else:
-                                    missing_keys = REQUIRED_KEYS - set(data.keys())
-                                    _LOGGER.error("Missing required keys in response: %s", missing_keys)
+                            data = json.loads(text_response)
+                            if all(key in data for key in REQUIRED_KEYS):
+                                _LOGGER.debug("Successfully parsed and validated data")
+                                return data
                             else:
-                                _LOGGER.error("Response is not a dictionary: %s", type(data))
-                            
-                            return data
-                            
-                        except ValueError as err:
-                            _LOGGER.error("Failed to parse response: %s", err)
-                            return {}
-                    
-                    _LOGGER.error("Failed to get data. Status: %s", response.status)
+                                missing_keys = REQUIRED_KEYS - set(data.keys())
+                                _LOGGER.error("Missing required keys: %s", missing_keys)
+                        except json.JSONDecodeError as err:
+                            _LOGGER.error("Failed to parse JSON: %s", err)
+                    else:
+                        _LOGGER.error("Failed to get data. Status: %s", response.status)
                     return {}
-                    
         except asyncio.TimeoutError:
             _LOGGER.error("Timeout while connecting to %s", url)
             raise
         except aiohttp.ClientError as err:
-            _LOGGER.error("Network error while connecting to %s: %s", url, str(err))
+            _LOGGER.error("Network error: %s", err)
             raise
         except Exception as err:
-            _LOGGER.error("Unexpected error while getting data from %s: %s", 
-                         url, str(err), exc_info=True)
+            _LOGGER.error("Unexpected error: %s", err, exc_info=True)
             raise
 
     async def async_validate_connection(self) -> bool:
@@ -92,25 +73,12 @@ class HWAMApi:
         try:
             _LOGGER.debug("Validating connection to HWAM stove at %s", self._host)
             data = await self.async_get_data()
-            
-            # Vérifie si les données sont valides
-            is_valid = (
-                isinstance(data, dict) and
-                all(key in data for key in REQUIRED_KEYS)
-            )
-            
-            if is_valid:
-                _LOGGER.debug("Connection validation successful")
-            else:
-                _LOGGER.error("Connection validation failed - invalid data format")
-                
-            return is_valid
-            
+            return all(key in data for key in REQUIRED_KEYS)
         except Exception as err:
-            _LOGGER.error("Connection validation failed with error: %s", str(err))
+            _LOGGER.error("Validation failed: %s", err)
             return False
 
-async def close(self):
-    """Close the session."""
-    if self._session and not self._session.closed:
-        _LOGGER.warning("Session closure should be managed by Home Assistant.")
+    async def close(self):
+        """Close the session."""
+        if self._session and not self._session.closed:
+            _LOGGER.warning("Session closure should be managed by Home Assistant.")
