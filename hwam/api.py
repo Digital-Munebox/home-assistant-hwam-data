@@ -79,6 +79,6 @@ class HWAMApi:
             return False
 
     async def close(self):
-        """Close the session."""
+        """Avoid explicit session closure; managed by Home Assistant."""
         if self._session and not self._session.closed:
-            _LOGGER.warning("Session closure should be managed by Home Assistant.")
+            _LOGGER.debug("Session is still open. Leaving it to Home Assistant.")
