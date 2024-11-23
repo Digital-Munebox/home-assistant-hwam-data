@@ -9,11 +9,9 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import UnitOfTemperature, PERCENTAGE
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
-    DataUpdateCoordinator,
 )
 
 from .const import DOMAIN
@@ -44,15 +42,92 @@ SENSORS = {
         "icon": "mdi:gas-cylinder",
         "divide_by": 100,
     },
+    "valve1_position": {
+        "name": "Position valve 1",
+        "unit": PERCENTAGE,
+        "icon": "mdi:valve",
+    },
+    "valve2_position": {
+        "name": "Position valve 2",
+        "unit": PERCENTAGE,
+        "icon": "mdi:valve",
+    },
+    "valve3_position": {
+        "name": "Position valve 3",
+        "unit": PERCENTAGE,
+        "icon": "mdi:valve",
+    },
+    "burn_level": {
+        "name": "Niveau de combustion",
+        "icon": "mdi:fire",
+    },
+    "operation_mode": {
+        "name": "Mode de fonctionnement",
+        "icon": "mdi:cog",
+        "value_map": {
+            2: "Éteint",
+            9: "En marche",
+        },
+    },
+    "phase": {
+        "name": "Phase",
+        "icon": "mdi:chart-timeline",
+    },
+    "refill_alarm": {
+        "name": "Alarme de remplissage",
+        "icon": "mdi:bell",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["Normal", "Remplir"],
+        "value_map": {
+            0: "Normal",
+            1: "Remplir",
+        },
+    },
+    "maintenance_alarms": {
+        "name": "Alarmes maintenance",
+        "icon": "mdi:alert",
+        "entity_category": EntityCategory.DIAGNOSTIC,
+    },
+    "safety_alarms": {
+        "name": "Alarmes sécurité",
+        "icon": "mdi:alert-circle",
+        "entity_category": EntityCategory.DIAGNOSTIC,
+    },
+    "door_open": {
+        "name": "Porte ouverte",
+        "icon": "mdi:door",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["Fermée", "Ouverte"],
+        "value_map": {
+            False: "Fermée",
+            True: "Ouverte",
+        },
+    },
+    "service_date": {
+        "name": "Date de maintenance",
+        "icon": "mdi:calendar-clock",
+        "device_class": SensorDeviceClass.DATE,
+        "entity_category": EntityCategory.DIAGNOSTIC,
+    },
+    "new_fire_wood_hours": {
+        "name": "Heures avant rechargement",
+        "icon": "mdi:timer-sand",
+    },
+    "new_fire_wood_minutes": {
+        "name": "Minutes avant rechargement",
+        "icon": "mdi:timer-sand",
+    },
 }
 
-async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities):
+async def async_setup_entry(hass, entry, async_add_entities):
     """Set up HWAM sensors based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+
     async_add_entities(
         HWAMSensor(coordinator, sensor_key, config, entry)
         for sensor_key, config in SENSORS.items()
     )
+
 
 class HWAMSensor(CoordinatorEntity, SensorEntity):
     """Representation of a HWAM sensor."""
@@ -63,7 +138,7 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
         self._sensor_key = sensor_key
         self._config = config
         self._attr_name = config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
+        self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"  # Ajout d’un ID unique
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": "HWAM Stove",
@@ -85,4 +160,6 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
                 return round(float(value) / self._config["divide_by"], 1)
             except (ValueError, TypeError):
                 return None
+        if "value_map" in self._config:
+            return self._config["value_map"].get(value, value)
         return value
