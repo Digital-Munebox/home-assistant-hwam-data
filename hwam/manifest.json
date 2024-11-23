@@ -7,4 +7,5 @@
   "dependencies": [],
   "codeowners": ["@Digital-Munebox"],
   "iot_class": "local_polling"
+  "config_flow": true
 }
