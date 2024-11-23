@@ -3,16 +3,22 @@ import asyncio
 import aiohttp
 import async_timeout
 import logging
+import json
 from typing import Dict, Optional
 
 _LOGGER = logging.getLogger(__name__)
 
-# Définition des clés attendues dans la réponse pour validation
 REQUIRED_KEYS = {
     "operation_mode",
     "stove_temperature",
     "room_temperature",
     "oxygen_level"
+}
+
+VALID_CONTENT_TYPES = {
+    'application/json',
+    'text/json',
+    'text/plain'  # Certains serveurs peuvent aussi utiliser text/plain
 }
 
 class HWAMApi:
@@ -34,16 +40,26 @@ class HWAMApi:
             async with async_timeout.timeout(10):
                 async with self._session.get(url) as response:
                     _LOGGER.debug("Response status: %s", response.status)
+                    content_type = response.headers.get('Content-Type', '').lower().split(';')[0]
+                    _LOGGER.debug("Response content type: %s", content_type)
                     
                     if response.status == 200:
                         try:
-                            data = await response.json()
-                            _LOGGER.debug("Received data: %s", data)
+                            # Lire le contenu brut d'abord
+                            text_response = await response.text()
+                            _LOGGER.debug("Raw response text: %s", text_response)
+                            
+                            # Parser manuellement le JSON
+                            try:
+                                data = json.loads(text_response)
+                            except json.JSONDecodeError as err:
+                                _LOGGER.error("Failed to parse JSON: %s", err)
+                                return {}
                             
                             # Validation basique des données
                             if isinstance(data, dict):
-                                # Vérifie si toutes les clés requises sont présentes
                                 if all(key in data for key in REQUIRED_KEYS):
+                                    _LOGGER.debug("Successfully parsed and validated data")
                                     return data
                                 else:
                                     missing_keys = REQUIRED_KEYS - set(data.keys())
@@ -54,12 +70,10 @@ class HWAMApi:
                             return data
                             
                         except ValueError as err:
-                            _LOGGER.error("Failed to parse JSON response: %s", err)
+                            _LOGGER.error("Failed to parse response: %s", err)
                             return {}
                     
-                    error_text = await response.text()
-                    _LOGGER.error("Failed to get data. Status: %s, Response: %s", 
-                                response.status, error_text)
+                    _LOGGER.error("Failed to get data. Status: %s", response.status)
                     return {}
                     
         except asyncio.TimeoutError:
