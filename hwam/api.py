@@ -17,24 +17,30 @@ class HWAMApi:
         self._base_url = f"http://{host}"
         _LOGGER.debug("Initialized HWAM API client with base URL: %s", self._base_url)
 
-    async def async_get_data(self) -> Dict:
-        """Get data from the HWAM stove."""
-        url = f"{self._base_url}/get_stove_data"
-        _LOGGER.debug("Attempting to fetch data from: %s", url)
+    async def _make_request(self, endpoint: str) -> Dict:
+        """Make a request to the HWAM API."""
+        url = f"{self._base_url}/{endpoint}"
+        _LOGGER.debug("Making request to: %s", url)
         
         try:
             async with async_timeout.timeout(10):
                 async with self._session.get(url) as response:
                     _LOGGER.debug("Response status: %s", response.status)
-                    if response.status == 200:
-                        data = await response.json()
-                        _LOGGER.debug("Received data: %s", data)
-                        return data
+                    content_type = response.headers.get('Content-Type', '')
+                    _LOGGER.debug("Response content type: %s", content_type)
                     
-                    # Log the response content in case of error
-                    error_text = await response.text()
-                    _LOGGER.error("Failed to get data. Status: %s, Response: %s", 
-                                response.status, error_text)
+                    # Log raw response
+                    response_text = await response.text()
+                    _LOGGER.debug("Raw response: %s", response_text)
+                    
+                    if response.status == 200:
+                        if 'application/json' in content_type:
+                            return await response.json()
+                        else:
+                            _LOGGER.error("Expected JSON response but got content type: %s", content_type)
+                            return {}
+                    
+                    _LOGGER.error("Request failed with status %s: %s", response.status, response_text)
                     return {}
                     
         except asyncio.TimeoutError:
@@ -44,9 +50,27 @@ class HWAMApi:
             _LOGGER.error("Network error while connecting to %s: %s", url, str(err))
             raise
         except Exception as err:
-            _LOGGER.error("Unexpected error while getting data from %s: %s", 
-                         url, str(err), exc_info=True)
+            _LOGGER.error("Unexpected error while getting data from %s: %s", url, str(err), exc_info=True)
             raise
+
+    async def async_get_data(self) -> Dict:
+        """Get data from the HWAM stove."""
+        # Try different potential endpoints
+        endpoints = ['get_stove_data', 'data', 'status', 'api/status']
+        
+        for endpoint in endpoints:
+            try:
+                _LOGGER.debug("Trying endpoint: %s", endpoint)
+                data = await self._make_request(endpoint)
+                if data:
+                    _LOGGER.debug("Successfully got data from endpoint: %s", endpoint)
+                    return data
+            except Exception as err:
+                _LOGGER.debug("Failed to get data from endpoint %s: %s", endpoint, err)
+                continue
+        
+        _LOGGER.error("Failed to get data from any endpoint")
+        return {}
 
     async def async_validate_connection(self) -> bool:
         """Validate the connection to the HWAM stove."""
@@ -54,8 +78,9 @@ class HWAMApi:
             _LOGGER.debug("Validating connection to HWAM stove at %s", self._host)
             data = await self.async_get_data()
             is_valid = bool(data)
-            _LOGGER.debug("Connection validation result: %s", 
-                         "Success" if is_valid else "Failed (empty data)")
+            _LOGGER.debug("Connection validation result: %s (Data: %s)", 
+                         "Success" if is_valid else "Failed (empty data)",
+                         str(data)[:200] if data else "No data")
             return is_valid
         except Exception as err:
             _LOGGER.error("Connection validation failed with error: %s", str(err))
