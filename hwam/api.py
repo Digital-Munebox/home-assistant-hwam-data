@@ -110,6 +110,7 @@ class HWAMApi:
             _LOGGER.error("Connection validation failed with error: %s", str(err))
             return False
 
-    async def close(self):
-        """Close the session."""
-        if self._session:
+async def close(self):
+    """Close the session."""
+    if self._session and not self._session.closed:
+        _LOGGER.warning("Session closure should be managed by Home Assistant.")
