@@ -9,9 +9,9 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    UnitOfTemperature,
     PERCENTAGE,
-    Device_INFO,
+    DEVICE_INFO,  # Correction de Device_INFO en DEVICE_INFO
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -29,7 +29,7 @@ SENSORS = {
         "name": "Température du poêle",
         "device_class": SensorDeviceClass.TEMPERATURE,
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": TEMP_CELSIUS,
+        "unit": UnitOfTemperature.CELSIUS,  # Correction de TEMP_CELSIUS
         "icon": "mdi:thermometer",
         "divide_by": 100,
     },
