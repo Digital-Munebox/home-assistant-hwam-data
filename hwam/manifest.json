@@ -1,11 +1,12 @@
 {
-  "domain": "hwam",
-  "name": "HWAM Integration",
-  "version": "1.0.0",
-  "documentation": "https://github.com/Digital-Munebox/home-assistant-hwam-data",
-  "requirements": [],
-  "dependencies": [],
-  "codeowners": ["@Digital-Munebox"],
-  "iot_class": "local_polling"
-  "config_flow": true
+    "domain": "hwam",
+    "name": "HWAM Smart Control",
+    "documentation": "https://github.com/Digital-Munebox/home-assistant-hwam-data",
+    "issue_tracker": "https://github.com/Digital-Munebox/home-assistant-hwam-data/issues",
+    "dependencies": [],
+    "codeowners": ["@Digital-Munebox"],
+    "requirements": [],
+    "iot_class": "local_polling",
+    "version": "1.0.0",
+    "config_flow": true
 }
