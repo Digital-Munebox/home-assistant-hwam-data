@@ -10,6 +10,10 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+DATA_SCHEMA = vol.Schema({
+    vol.Required(CONF_HOST): str,
+})
+
 class HWAMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HWAM."""
 
@@ -21,33 +25,36 @@ class HWAMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
+            _LOGGER.debug("Config flow received user input: %s", user_input)
+            
             session = async_get_clientsession(self.hass)
             api = HWAMApi(user_input[CONF_HOST], session)
 
             try:
                 # Test the connection
+                _LOGGER.debug("Testing connection to HWAM stove")
                 if await api.async_validate_connection():
+                    _LOGGER.debug("Connection test successful")
                     await api.close()
                     return self.async_create_entry(
                         title="HWAM Stove",
                         data={CONF_HOST: user_input[CONF_HOST]}
                     )
+                
+                _LOGGER.error("Could not connect to HWAM stove")
                 errors["base"] = "cannot_connect"
-            except Exception as err:  # pylint: disable=broad-except
-                _LOGGER.error("Unexpected error occurred: %s", err)
+                
+            except asyncio.TimeoutError:
+                _LOGGER.error("Timeout connecting to HWAM stove")
+                errors["base"] = "timeout"
+            except Exception as err:
+                _LOGGER.exception("Unexpected error occurred during connection test: %s", err)
                 errors["base"] = "unknown"
             finally:
                 await api.close()
 
-        # Show the configuration form
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({
-                vol.Required(CONF_HOST): str,
-            }),
+            data_schema=DATA_SCHEMA,
             errors=errors
         )
-
-    async def async_step_import(self, user_input=None):
-        """Handle import from configuration.yaml."""
-        return await self.async_step_user(user_input)
