@@ -1,31 +1,23 @@
 """Constants for the HWAM integration."""
+from homeassistant.const import Platform
+
 DOMAIN = "hwam"
-DEFAULT_NAME = "HWAM Stove"
-UPDATE_INTERVAL = 5  # seconds
+PLATFORMS = [Platform.SENSOR]
 
-# API Response Keys
-ATTR_STOVE_TEMP = "stove_temperature"
-ATTR_ROOM_TEMP = "room_temperature"
-ATTR_OXYGEN = "oxygen_level"
-ATTR_VALVE1 = "valve1_position"
-ATTR_VALVE2 = "valve2_position"
-ATTR_VALVE3 = "valve3_position"
-ATTR_DOOR = "door_open"
-ATTR_MODE = "operation_mode"
-ATTR_REFILL = "refill_alarm"
+# Polling interval
+UPDATE_INTERVAL = 15  # seconds
 
-# Operation Modes
-MODE_OFF = 2
-MODE_ON = 9
-
-# Mode Mapping
-MODE_MAP = {
-    MODE_OFF: "Off",
-    MODE_ON: "On"
-}
-
+# Device info
 DEVICE_INFO = {
+    "identifiers": {("hwam", "stove")},
+    "name": "HWAM Poêle",
     "manufacturer": "HWAM",
     "model": "IHS Smart Control™",
-    "via_device": None,
+    "sw_version": "3.20.0",  # This will be updated dynamically
+}
+
+# Operation modes
+OPERATION_MODES = {
+    2: "Éteint",
+    9: "En marche",
 }
