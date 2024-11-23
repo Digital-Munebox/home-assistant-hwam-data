@@ -113,4 +113,3 @@ class HWAMApi:
     async def close(self):
         """Close the session."""
         if self._session:
-            await self._session.close()
