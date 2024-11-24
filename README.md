@@ -1,46 +1,74 @@
-HWAM Data Integration for Home Assistant
+# HWAM Integration for Home Assistant
 
-This integration allows you to connect HWAM wood stoves to Home Assistant, enabling monitoring of various parameters like temperature, oxygen level, mode, and more. It also includes binary sensors for specific states like door status.
+![HWAM Integration] https://github.com/Digital-Munebox/home-assistant-hwam-data.git
 
-Features
+## Description
 
-Sensors
+This custom integration allows you to monitor and control your **HWAM Smart Control** wood stove via Home Assistant. It provides real-time data such as:
 
-stove_temperature	Stove Temperature	°C	Temperature of the stove, divided by 100 for consistency.
-room_temperature	Room Temperature	°C	Ambient temperature in the room, divided by 100 for consistency.
-oxygen_level	Oxygen Level	%	Oxygen level measured inside the stove.
-valve1_position	Valve 1 Position	%	Position of valve 1 (0-100%).
-valve2_position	Valve 2 Position	%	Position of valve 2 (0-100%).
-valve3_position	Valve 3 Position	%	Position of valve 3 (0-100%).
-maintenance_alarms	Maintenance Alarms	None	Indicates if there are maintenance alarms.
-safety_alarms	Safety Alarms	None	Indicates if there are safety alarms.
-refill_alarm	Refill Alarm	None	Indicates if a refill is required.
-operation_mode	Stove Mode	None	Indicates the current mode of the stove (e.g., "On", "Off").
+- Stove temperature
+- Room temperature
+- Oxygen level
+- Burn level
+- Maintenance and safety alarms
+- Door status
 
+## Features
 
+- Automatic polling of data from your HWAM stove.
+- Displays important metrics directly in your Home Assistant dashboard.
+- Customizable sensors with unique IDs for seamless integration.
+- Local-only communication for enhanced security.
 
-Binary Sensors
+## Installation
 
-door_open	Door Open	Indicates if the stove door is currently open.
+### Via HACS
 
+1. Ensure you have [HACS](https://hacs.xyz/) installed in Home Assistant.
+2. Add this repository to HACS:
+   - Go to **HACS > Integrations > Add Custom Repository**.
+   - Enter the repository URL and select **Integration**.
+3. Search for **HWAM Integration** in HACS and install it.
+4. Restart Home Assistant.
 
+### Manual Installation
 
+1. Download the integration from the repository.
+2. Copy the `custom_components/hwam` folder to the `custom_components` folder in your Home Assistant configuration directory.
+3. Restart Home Assistant.
 
-Example Dashboard Configuration :
+## Configuration
 
-type: vertical-stack
-cards:
-  - type: entities
-    entities:
-      - entity: sensor.stove_temperature
-      - entity: sensor.room_temperature
-      - entity: sensor.oxygen_level
-      - entity: sensor.valve1_position
-      - entity: sensor.valve2_position
-      - entity: sensor.valve3_position
-      - entity: sensor.maintenance_alarms
-      - entity: sensor.safety_alarms
-      - entity: sensor.refill_alarm
-      - entity: sensor.operation_mode
-      - entity: binary_sensor.door_open
-    title: HWAM Stove Status
+1. Go to **Settings > Devices & Services > Add Integration**.
+2. Search for `HWAM` and select it.
+3. Enter the IP address of your HWAM stove.
+4. The integration will automatically fetch all available sensors.
+
+## Supported Sensors
+
+| Sensor Name           | Description                      | Unit       |
+|-----------------------|----------------------------------|------------|
+| Stove Temperature     | Current temperature of the stove | °C         |
+| Room Temperature      | Current ambient temperature      | °C         |
+| Oxygen Level          | Current oxygen level in the room | %          |
+| Door Open Status      | Whether the stove door is open   | Open/Closed |
+| Burn Level            | Current combustion level         | None       |
+| Maintenance Alarms    | Maintenance-related alarms       | Diagnostic |
+| Safety Alarms         | Safety-related alarms            | Diagnostic |
+
+## Troubleshooting
+
+- Ensure your HWAM stove is powered on and connected to the network.
+- Verify that the correct IP address is used during setup.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests to enhance the integration.
+
+## Credits
+
+Developed by Adrien PINAUD. Inspired by the awesome Home Assistant community.
