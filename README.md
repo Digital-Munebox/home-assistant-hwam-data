@@ -1,6 +1,6 @@
 # HWAM Integration for Home Assistant
 
-![HWAM Integration] https://github.com/Digital-Munebox/home-assistant-hwam-data.git
+[HWAM Integration] https://github.com/Digital-Munebox/home-assistant-hwam-data.git
 
 ## Description
 
