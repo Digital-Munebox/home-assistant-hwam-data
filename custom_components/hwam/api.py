@@ -3,6 +3,7 @@ import aiohttp
 import async_timeout
 import logging
 from typing import Dict, Any
+import json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,9 +27,15 @@ class HWAMApi:
             async with async_timeout.timeout(15):
                 async with self._session.get(url) as response:
                     response.raise_for_status()
-                    data = await response.json()
-                    _LOGGER.debug("Received data: %s", data)
-                    return data
+                    text = await response.text()
+                    _LOGGER.debug("Received raw response: %s", text)
+                    try:
+                        data = json.loads(text)
+                        _LOGGER.debug("Parsed JSON data: %s", data)
+                        return data
+                    except json.JSONDecodeError as e:
+                        _LOGGER.error("Failed to parse JSON: %s", e)
+                        raise
         except Exception as err:
             _LOGGER.error("Error fetching data: %s", err)
             raise
@@ -38,8 +45,13 @@ class HWAMApi:
         url = f"{self._base_url}{self.ENDPOINT_START}"
         try:
             async with self._session.get(url) as response:
-                data = await response.json()
-                return data.get("response") == "OK"
+                text = await response.text()
+                try:
+                    data = json.loads(text)
+                    return data.get("response") == "OK"
+                except json.JSONDecodeError:
+                    _LOGGER.error("Failed to parse JSON response")
+                    return False
         except Exception as err:
             _LOGGER.error("Error starting combustion: %s", err)
             return False
@@ -51,8 +63,13 @@ class HWAMApi:
         url = f"{self._base_url}{self.ENDPOINT_SET_BURN_LEVEL}?level={level}"
         try:
             async with self._session.get(url) as response:
-                data = await response.json()
-                return data.get("response") == "OK"
+                text = await response.text()
+                try:
+                    data = json.loads(text)
+                    return data.get("response") == "OK"
+                except json.JSONDecodeError:
+                    _LOGGER.error("Failed to parse JSON response")
+                    return False
         except Exception as err:
             _LOGGER.error("Error setting burn level: %s", err)
             return False
