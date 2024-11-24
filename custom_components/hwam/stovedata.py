@@ -1,6 +1,9 @@
 """Stove data parsing and structure."""
 import dataclasses
 import datetime
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class StoveData:
@@ -22,22 +25,27 @@ class StoveData:
 
 def stove_data_of(json: dict) -> StoveData:
     """Convert JSON data into a StoveData object."""
-    return StoveData(
-        updating=json["updating"] == 1,
-        phase=json["phase"],
-        night_lowering=json["night_lowering"] == 1,
-        new_fire_wood_time=datetime.time(
-            hour=json["new_fire_wood_hours"],
-            minute=json["new_fire_wood_minutes"]),
-        burn_level=json["burn_level"],
-        operation_mode=json["operation_mode"],
-        maintenance_alarms=json["maintenance_alarms"],
-        safety_alarms=json["safety_alarms"],
-        refill_alarm=json["refill_alarm"] == 1,
-        version=f"{json['version_major']}.{json['version_minor']}.{json['version_build']}",
-        wifi_version=f"{json['wifi_version_major']}.{json['wifi_version_minor']}.{json['wifi_version_build']}",
-        room_temperature=json["room_temperature"] // 100,
-        stove_temperature=json["stove_temperature"] // 100,
-        oxygen_level=json["oxygen_level"] // 100,
-        door_open=json["door_open"] == 1,
-    )
+    try:
+        return StoveData(
+            updating=json.get("updating", 0) == 1,
+            phase=json.get("phase", 0),
+            night_lowering=json.get("night_lowering", 0) == 1,
+            new_fire_wood_time=datetime.time(
+                hour=json.get("new_fire_wood_hours", 0),
+                minute=json.get("new_fire_wood_minutes", 0)),
+            burn_level=json.get("burn_level", 0),
+            operation_mode=json.get("operation_mode", 0),
+            maintenance_alarms=json.get("maintenance_alarms", 0),
+            safety_alarms=json.get("safety_alarms", 0),
+            refill_alarm=json.get("refill_alarm", 0) == 1,
+            version=f"{json.get('version_major', 0)}.{json.get('version_minor', 0)}.{json.get('version_build', 0)}",
+            wifi_version=f"{json.get('wifi_version_major', 0)}.{json.get('wifi_version_minor', 0)}.{json.get('wifi_version_build', 0)}",
+            room_temperature=json.get("room_temperature", 0) // 100,
+            stove_temperature=json.get("stove_temperature", 0) // 100,
+            oxygen_level=json.get("oxygen_level", 0) // 100,
+            door_open=json.get("door_open", 0) == 1,
+        )
+    except Exception as e:
+        _LOGGER.error("Error converting stove data: %s", e)
+        _LOGGER.debug("Raw JSON data: %s", json)
+        raise
