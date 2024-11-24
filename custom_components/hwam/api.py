@@ -1,8 +1,11 @@
+"""HWAM API Client."""
 import asyncio
 import aiohttp
 import async_timeout
 import logging
 from typing import Dict, Any
+
+from .stovedata import stove_data_of, StoveData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,17 +22,18 @@ class HWAMApi:
         self._session = session or aiohttp.ClientSession()
         self._base_url = f"http://{host}"
 
-    async def async_get_data(self) -> Dict[str, Any]:
-        """Retrieve data from the stove."""
+    async def async_get_data(self) -> StoveData:
+        """Retrieve and parse stove data."""
         url = f"{self._base_url}{self.ENDPOINT_GET_STOVE_DATA}"
-        _LOGGER.debug("Fetching data from: %s", url)
+        _LOGGER.debug("Fetching stove data from: %s", url)
         try:
             async with async_timeout.timeout(15):
                 async with self._session.get(url) as response:
                     response.raise_for_status()
-                    return await response.json(content_type="text/json")
+                    raw_data = await response.json(content_type="text/json")
+                    return stove_data_of(raw_data)
         except Exception as err:
-            _LOGGER.error("Error fetching data: %s", err)
+            _LOGGER.error("Error fetching stove data: %s", err)
             raise
 
     async def start_combustion(self) -> bool:
