@@ -1,11 +1,8 @@
-"""HWAM API Client."""
 import asyncio
 import aiohttp
 import async_timeout
 import logging
 from typing import Dict, Any
-
-from .stovedata import stove_data_of, StoveData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,18 +19,17 @@ class HWAMApi:
         self._session = session or aiohttp.ClientSession()
         self._base_url = f"http://{host}"
 
-    async def async_get_data(self) -> StoveData:
-        """Retrieve and parse stove data."""
+    async def async_get_data(self) -> Dict[str, Any]:
+        """Retrieve data from the stove."""
         url = f"{self._base_url}{self.ENDPOINT_GET_STOVE_DATA}"
-        _LOGGER.debug("Fetching stove data from: %s", url)
+        _LOGGER.debug("Fetching data from: %s", url)
         try:
             async with async_timeout.timeout(15):
                 async with self._session.get(url) as response:
                     response.raise_for_status()
-                    raw_data = await response.json(content_type="text/json")
-                    return stove_data_of(raw_data)
+                    return await response.json(content_type="text/json")
         except Exception as err:
-            _LOGGER.error("Error fetching stove data: %s", err)
+            _LOGGER.error("Error fetching data: %s", err)
             raise
 
     async def start_combustion(self) -> bool:
@@ -60,15 +56,16 @@ class HWAMApi:
             _LOGGER.error("Error setting burn level: %s", err)
             return False
 
-    async def determine_hostname(self) -> str:
-        """Resolve the hostname of the airbox."""
+    async def async_validate_connection(self) -> bool:
+        """Validate the connection to the HWAM stove."""
         try:
-            resolver = aiohttp.DNSResolver(loop=asyncio.get_event_loop())
-            result = await resolver.query(self._host, 'PTR')
-            return result.name
+            data = await self.async_get_data()
+            if data:
+                return True
+            return False
         except Exception as err:
-            _LOGGER.error("Error resolving hostname: %s", err)
-            return ""
+            _LOGGER.error("Validation failed: %s", err)
+            return False
 
     async def close(self):
         """Close the session."""
