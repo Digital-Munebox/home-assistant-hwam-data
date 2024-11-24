@@ -1,7 +1,30 @@
-# Python cache files
+# Fichiers et dossiers Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 
-# Virtual environment
+# Environnements virtuels
+env/
 venv/
+
+# Configurations locales de Home Assistant
+*.db
+*.log
+home-assistant_v2.*
+storage/
+.cloud/
+.secrets.yaml
+
+# Système et éditeurs
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+
+# Dépendances
+*.egg-info/
+dist/
+build/
+*.tar.gz
