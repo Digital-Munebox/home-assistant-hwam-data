@@ -61,6 +61,10 @@ SENSORS = {
         "name": "Niveau de combustion",
         "icon": "mdi:fire",
     },
+    "combustion_status": {
+        "name": "Statut de la combustion",
+        "icon": "mdi:fire-alert",
+    },
     "operation_mode": {
         "name": "Mode de fonctionnement",
         "icon": "mdi:cog",
@@ -123,10 +127,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up HWAM sensors based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    async_add_entities(
+    # Ajouter les capteurs définis dans SENSORS
+    sensors = [
         HWAMSensor(coordinator, sensor_key, config, entry)
         for sensor_key, config in SENSORS.items()
-    )
+    ]
+    
+    # Ajouter des capteurs pour les services interactifs
+    sensors.append(HWAMCommandSensor(coordinator, "burn_level", entry, "Niveau de combustion"))
+    sensors.append(HWAMCommandSensor(coordinator, "combustion_status", entry, "Statut de la combustion"))
+    
+    async_add_entities(sensors)
 
 
 class HWAMSensor(CoordinatorEntity, SensorEntity):
@@ -138,7 +149,7 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
         self._sensor_key = sensor_key
         self._config = config
         self._attr_name = config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"  # Ajout d’un ID unique
+        self._attr_unique_id = f"{entry.entry_id}_{sensor_key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": "HWAM Stove",
@@ -163,3 +174,24 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
         if "value_map" in self._config:
             return self._config["value_map"].get(value, value)
         return value
+
+
+class HWAMCommandSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a HWAM interactive command sensor."""
+
+    def __init__(self, coordinator, command: str, entry, name: str):
+        """Initialize the interactive sensor."""
+        super().__init__(coordinator)
+        self._command = command
+        self._attr_name = name
+        self._attr_unique_id = f"{entry.entry_id}_{command}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": "HWAM Stove",
+            "manufacturer": "HWAM",
+        }
+
+    @property
+    def native_value(self):
+        """Return the value of the command."""
+        return self.coordinator.data.get(self._command)
