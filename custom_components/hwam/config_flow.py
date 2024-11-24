@@ -1,4 +1,4 @@
-"""Config flow for HWAM integration."""
+import asyncio  # Ajout de l'importation de asyncio
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST
@@ -33,7 +33,7 @@ class HWAMConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 # Test the connection
                 _LOGGER.debug("Testing connection to HWAM stove")
-                if await api.async_validate_connection():
+                if await api.async_validate_connection():  # Appel à la méthode async_validate_connection
                     _LOGGER.debug("Connection test successful")
                     await api.close()
                     return self.async_create_entry(
