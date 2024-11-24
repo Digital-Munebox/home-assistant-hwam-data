@@ -10,9 +10,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTemperature, PERCENTAGE
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 
@@ -25,7 +23,6 @@ SENSORS = {
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTemperature.CELSIUS,
         "icon": "mdi:thermometer",
-        "divide_by": 100,
     },
     "room_temperature": {
         "name": "Température ambiante",
@@ -33,37 +30,16 @@ SENSORS = {
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTemperature.CELSIUS,
         "icon": "mdi:home-thermometer",
-        "divide_by": 100,
     },
     "oxygen_level": {
         "name": "Niveau d'oxygène",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": PERCENTAGE,
         "icon": "mdi:gas-cylinder",
-        "divide_by": 100,
-    },
-    "valve1_position": {
-        "name": "Position valve 1",
-        "unit": PERCENTAGE,
-        "icon": "mdi:valve",
-    },
-    "valve2_position": {
-        "name": "Position valve 2",
-        "unit": PERCENTAGE,
-        "icon": "mdi:valve",
-    },
-    "valve3_position": {
-        "name": "Position valve 3",
-        "unit": PERCENTAGE,
-        "icon": "mdi:valve",
     },
     "burn_level": {
         "name": "Niveau de combustion",
         "icon": "mdi:fire",
-    },
-    "combustion_status": {
-        "name": "Statut de la combustion",
-        "icon": "mdi:fire-alert",
     },
     "operation_mode": {
         "name": "Mode de fonctionnement",
@@ -74,28 +50,34 @@ SENSORS = {
         },
     },
     "phase": {
-        "name": "Phase",
-        "icon": "mdi:chart-timeline",
-    },
-    "refill_alarm": {
-        "name": "Alarme de remplissage",
-        "icon": "mdi:bell",
-        "device_class": SensorDeviceClass.ENUM,
-        "options": ["Normal", "Remplir"],
+        "name": "Phase de combustion",
+        "icon": "mdi:fire-alert",
         "value_map": {
-            0: "Normal",
-            1: "Remplir",
+            1: "Allumage",
+            3: "Combustion",
+            4: "Brasier",
+            5: "Repos",
         },
     },
     "maintenance_alarms": {
-        "name": "Alarmes maintenance",
+        "name": "Alarmes de maintenance",
         "icon": "mdi:alert",
         "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "safety_alarms": {
-        "name": "Alarmes sécurité",
+        "name": "Alarmes de sécurité",
         "icon": "mdi:alert-circle",
         "entity_category": EntityCategory.DIAGNOSTIC,
+    },
+    "refill_alarm": {
+        "name": "Alarme de rechargement",
+        "icon": "mdi:bell",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["Aucun", "Rechargement nécessaire"],
+        "value_map": {
+            False: "Aucun",
+            True: "Rechargement nécessaire",
+        },
     },
     "door_open": {
         "name": "Porte ouverte",
@@ -107,19 +89,23 @@ SENSORS = {
             True: "Ouverte",
         },
     },
+    "version": {
+        "name": "Version du firmware",
+        "icon": "mdi:update",
+    },
+    "wifi_version": {
+        "name": "Version du module WiFi",
+        "icon": "mdi:wifi",
+    },
+    "new_fire_wood_time": {
+        "name": "Temps avant rechargement",
+        "icon": "mdi:timer-sand",
+    },
     "service_date": {
         "name": "Date de maintenance",
-        "icon": "mdi:calendar-clock",
+        "icon": "mdi:calendar-check",
         "device_class": SensorDeviceClass.DATE,
         "entity_category": EntityCategory.DIAGNOSTIC,
-    },
-    "new_fire_wood_hours": {
-        "name": "Heures avant rechargement",
-        "icon": "mdi:timer-sand",
-    },
-    "new_fire_wood_minutes": {
-        "name": "Minutes avant rechargement",
-        "icon": "mdi:timer-sand",
     },
 }
 
@@ -127,16 +113,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up HWAM sensors based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    # Ajouter les capteurs définis dans SENSORS
     sensors = [
         HWAMSensor(coordinator, sensor_key, config, entry)
         for sensor_key, config in SENSORS.items()
     ]
-    
-    # Ajouter des capteurs pour les services interactifs
-    sensors.append(HWAMCommandSensor(coordinator, "burn_level", entry, "Niveau de combustion"))
-    sensors.append(HWAMCommandSensor(coordinator, "combustion_status", entry, "Statut de la combustion"))
-    
+
     async_add_entities(sensors)
 
 
@@ -163,35 +144,19 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
-        value = self.coordinator.data.get(self._sensor_key)
+        stove_data = self.coordinator.data  # Instance de StoveData
+        value = getattr(stove_data, self._sensor_key, None)
+
         if value is None:
             return None
-        if "divide_by" in self._config:
-            try:
-                return round(float(value) / self._config["divide_by"], 1)
-            except (ValueError, TypeError):
-                return None
+
+        # Apply value mapping if specified
         if "value_map" in self._config:
             return self._config["value_map"].get(value, value)
+
         return value
 
-
-class HWAMCommandSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a HWAM interactive command sensor."""
-
-    def __init__(self, coordinator, command: str, entry, name: str):
-        """Initialize the interactive sensor."""
-        super().__init__(coordinator)
-        self._command = command
-        self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{command}"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": "HWAM Stove",
-            "manufacturer": "HWAM",
-        }
-
     @property
-    def native_value(self):
-        """Return the value of the command."""
-        return self.coordinator.data.get(self._command)
+    def options(self):
+        """Return options for ENUM sensors."""
+        return self._config.get("options")
