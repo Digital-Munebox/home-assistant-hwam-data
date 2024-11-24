@@ -2,7 +2,6 @@
 from datetime import datetime
 import logging
 from typing import Any
-
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
@@ -112,18 +111,14 @@ SENSORS = {
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up HWAM sensors based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-
     sensors = [
         HWAMSensor(coordinator, sensor_key, config, entry)
         for sensor_key, config in SENSORS.items()
     ]
-
     async_add_entities(sensors)
-
 
 class HWAMSensor(CoordinatorEntity, SensorEntity):
     """Representation of a HWAM sensor."""
-
     def __init__(self, coordinator, sensor_key: str, config: dict, entry):
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -144,16 +139,22 @@ class HWAMSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
-        stove_data = self.coordinator.data  # Instance de StoveData
-        value = getattr(stove_data, self._sensor_key, None)
-
+        if not self.coordinator.data:
+            return None
+        
+        # Si les données sont un dictionnaire
+        if isinstance(self.coordinator.data, dict):
+            value = self.coordinator.data.get(self._sensor_key)
+        else:
+            # Si c'est une instance de StoveData
+            value = getattr(self.coordinator.data, self._sensor_key, None)
+            
         if value is None:
             return None
-
+            
         # Apply value mapping if specified
         if "value_map" in self._config:
             return self._config["value_map"].get(value, value)
-
         return value
 
     @property
