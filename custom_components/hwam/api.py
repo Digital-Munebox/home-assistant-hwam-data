@@ -8,7 +8,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class HWAMApi:
     """HWAM API Client."""
-
     ENDPOINT_GET_STOVE_DATA = "/get_stove_data"
     ENDPOINT_START = "/start"
     ENDPOINT_SET_BURN_LEVEL = "/set_burn_level"
@@ -27,7 +26,9 @@ class HWAMApi:
             async with async_timeout.timeout(15):
                 async with self._session.get(url) as response:
                     response.raise_for_status()
-                    return await response.json(content_type="text/json")
+                    data = await response.json()
+                    _LOGGER.debug("Received data: %s", data)
+                    return data
         except Exception as err:
             _LOGGER.error("Error fetching data: %s", err)
             raise
