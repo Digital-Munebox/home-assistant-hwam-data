@@ -53,3 +53,27 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+async def async_setup_entry(hass, entry):
+    """Set up HWAM integration from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
+    hwam_api = HWAMApi(entry.data["host"])
+    hass.data[DOMAIN][entry.entry_id] = {"api": hwam_api}
+
+    async def handle_start_combustion(call):
+        success = await hwam_api.start_combustion()
+        if not success:
+            _LOGGER.error("Failed to start combustion")
+
+    async def handle_set_burn_level(call):
+        level = call.data.get("level")
+        success = await hwam_api.set_burn_level(level)
+        if not success:
+            _LOGGER.error(f"Failed to set burn level to {level}")
+
+    hass.services.async_register(DOMAIN, "start_combustion", handle_start_combustion)
+    hass.services.async_register(DOMAIN, "set_burn_level", handle_set_burn_level)
+
+    return True
+
