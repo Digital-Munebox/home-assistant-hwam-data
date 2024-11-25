@@ -1,0 +1,76 @@
+"""HWAM API Client."""
+import asyncio
+import aiohttp
+import async_timeout
+import logging
+from typing import Dict, Any
+
+from .stovedata import stove_data_of, StoveData
+
+_LOGGER = logging.getLogger(__name__)
+
+class HWAMApi:
+    """HWAM API Client."""
+
+    ENDPOINT_GET_STOVE_DATA = "/get_stove_data"
+    ENDPOINT_START = "/start"
+    ENDPOINT_SET_BURN_LEVEL = "/set_burn_level"
+
+    def __init__(self, host: str, session: aiohttp.ClientSession = None):
+        """Initialize the API client."""
+        self._host = host
+        self._session = session or aiohttp.ClientSession()
+        self._base_url = f"http://{host}"
+
+    async def async_get_data(self) -> StoveData:
+        """Retrieve and parse stove data."""
+        url = f"{self._base_url}{self.ENDPOINT_GET_STOVE_DATA}"
+        _LOGGER.debug("Fetching stove data from: %s", url)
+        try:
+            async with async_timeout.timeout(15):
+                async with self._session.get(url) as response:
+                    response.raise_for_status()
+                    raw_data = await response.json(content_type="text/json")
+                    return stove_data_of(raw_data)
+        except Exception as err:
+            _LOGGER.error("Error fetching stove data: %s", err)
+            raise
+
+    async def start_combustion(self) -> bool:
+        """Command the stove to start combustion."""
+        url = f"{self._base_url}{self.ENDPOINT_START}"
+        try:
+            async with self._session.get(url) as response:
+                data = await response.json()
+                return data.get("response") == "OK"
+        except Exception as err:
+            _LOGGER.error("Error starting combustion: %s", err)
+            return False
+
+    async def set_burn_level(self, level: int) -> bool:
+        """Set the burn level of the stove."""
+        if level < 0 or level > 5:
+            raise ValueError("Burn level must be between 0 and 5")
+        url = f"{self._base_url}{self.ENDPOINT_SET_BURN_LEVEL}?level={level}"
+        try:
+            async with self._session.get(url) as response:
+                data = await response.json()
+                return data.get("response") == "OK"
+        except Exception as err:
+            _LOGGER.error("Error setting burn level: %s", err)
+            return False
+
+    async def determine_hostname(self) -> str:
+        """Resolve the hostname of the airbox."""
+        try:
+            resolver = aiohttp.DNSResolver(loop=asyncio.get_event_loop())
+            result = await resolver.query(self._host, 'PTR')
+            return result.name
+        except Exception as err:
+            _LOGGER.error("Error resolving hostname: %s", err)
+            return ""
+
+    async def close(self):
+        """Close the session."""
+        if self._session and not self._session.closed:
+            await self._session.close()
